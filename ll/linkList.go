@@ -4,47 +4,50 @@ import (
 	"reflect"
 	"errors"
 	"fmt"
-
-	"github.com/golodash/structure/internal"
 )
 
 type (
-	Node[T interface{}] struct {
+	Node[T any] struct {
 		data *T
 		Prev *Node[T]
 		Next *Node[T]
 	}
 
-	LinkList[T interface{}] struct {
+	LinkList[T any] struct {
 		Head *Node[T]
 		Tail *Node[T]
 		Size int
-		functions map[string]interface{}
+		functions map[string]any
 	}
 )
 
-// `functions` variable does not support 'generics' because we are still in 1.18beta1
-//
-// TODO: add support for generics
-func New[T interface{}](functions map[string]interface{}) LinkList[T] {
-	ll := LinkList[T]{
+func New[T any](functions map[string]any) (*LinkList[T], error) {
+	l := &LinkList[T]{
 		Head: nil,
 		Tail: nil,
-		functions: map[string]interface{}{},
+		functions: map[string]any{},
 	}
 
 	for k, v := range functions {
 		if reflect.TypeOf(v).Kind() == reflect.Func {
-			ll.functions[k] = v
+			f := reflect.TypeOf(v)
+			// checks if function's first input is type of *LinkList[T]
+			if f.NumIn() > 0 && f.In(0).Kind() == reflect.Ptr && f.In(0).String() == reflect.TypeOf(l).String() {
+				l.functions[k] = v
+			} else {
+				return nil, errors.New(fmt.Sprintf("`%s` is a function but its first input must be type of %s", k, reflect.TypeOf(l).String()))
+			}
+		} else {
+			return nil, errors.New(fmt.Sprintf("`%s` is not a function", k))
 		}
 	}
 
-	return ll
+	return l, nil
 }
 
 // O(n)
-func (ll *LinkList[T]) Clear() {
-	for trav := ll.Head; trav != nil; trav = trav.Next {
+func (l *LinkList[T]) Clear() {
+	for trav := l.Head; trav != nil; trav = trav.Next {
 		if trav.Prev != nil {
 			trav.Prev.Next = nil
 		}
@@ -52,40 +55,41 @@ func (ll *LinkList[T]) Clear() {
 		trav.Prev = nil
 	}
 
-	ll.Head = nil
-	ll.Tail = nil
-	ll.Size = 0
+	l.Head = nil
+	l.Tail = nil
+	l.Size = 0
 }
 
-func (ll *LinkList[T]) Run(function string, params... interface{}) ([]reflect.Value, error) {
-	if _, ok := ll.functions[function]; ok {
-		return internal.CallJobFuncWithParams(ll.functions[function], params)
+func (l *LinkList[T]) Run(function string, params... any) ([]reflect.Value, error) {
+	params = append([]any{l}, params...)
+	if _, ok := l.functions[function]; ok {
+		return CallJobFuncWithParams(l.functions[function], params)
 	}
 
 	return nil, errors.New(fmt.Sprintf("%s not found", function))
 }
 
-func (ll *LinkList[T]) oneSizePlus() {
-	ll.Size++
+func (l *LinkList[T]) oneSizePlus() {
+	l.Size++
 }
 
-func (ll *LinkList[T]) oneSizeMinus() {
-	ll.Size--
-	if ll.Size < 0 {
-		ll.Size = 0
+func (l *LinkList[T]) oneSizeMinus() {
+	l.Size--
+	if l.Size < 0 {
+		l.Size = 0
 	}
 }
 
-func (ll *LinkList[T]) GetSize() int {
-	return ll.Size
+func (l *LinkList[T]) GetSize() int {
+	return l.Size
 }
 
-func (ll *LinkList[T]) IsEmpty() bool {
-	return ll.Size == 0
+func (l *LinkList[T]) IsEmpty() bool {
+	return l.Size == 0
 }
 
 // O(1)
-func (ll *LinkList[T]) AddLast(data *T) *T {
+func (l *LinkList[T]) AddLast(data *T) *T {
 	var node *Node[T] = nil
 
 	node = &Node[T]{
@@ -94,22 +98,22 @@ func (ll *LinkList[T]) AddLast(data *T) *T {
 		Next: nil,
 	}
 
-	if ll.Size == 0 {
-		ll.Head = node
-		ll.Tail = node
+	if l.Size == 0 {
+		l.Head = node
+		l.Tail = node
 	} else {
-		node.Prev = ll.Tail
-		ll.Tail.Next = node
-		ll.Tail = node
+		node.Prev = l.Tail
+		l.Tail.Next = node
+		l.Tail = node
 	}
 
-	ll.oneSizePlus()
+	l.oneSizePlus()
 
 	return data
 }
 
 // O(1)
-func (ll *LinkList[T]) AddFirst(data *T) *T {
+func (l *LinkList[T]) AddFirst(data *T) *T {
 	var node *Node[T] = nil
 
 	node = &Node[T]{
@@ -118,21 +122,21 @@ func (ll *LinkList[T]) AddFirst(data *T) *T {
 		Next: nil,
 	}
 
-	if ll.Size == 0 {
-		ll.Head = node
-		ll.Tail = node
+	if l.Size == 0 {
+		l.Head = node
+		l.Tail = node
 	} else {
-		node.Next = ll.Head
-		ll.Head.Prev = node
-		ll.Head = node
+		node.Next = l.Head
+		l.Head.Prev = node
+		l.Head = node
 	}
 
-	ll.oneSizePlus()
+	l.oneSizePlus()
 
 	return data
 }
 
-func (ll *LinkList[T]) addBeforeNode(node *Node[T], data *T) *T {
+func (l *LinkList[T]) addBeforeNode(node *Node[T], data *T) *T {
 	var tempNode *Node[T] = &Node[T] {
 		data: data,
 		Prev: nil,
@@ -146,24 +150,24 @@ func (ll *LinkList[T]) addBeforeNode(node *Node[T], data *T) *T {
 	tempNode.Next = node
 	node.Prev = tempNode
 
-	ll.oneSizePlus()
+	l.oneSizePlus()
 
 	return data
 }
 
 // O(n)
-func (ll *LinkList[T]) Add(index int, data *T) *T {
+func (l *LinkList[T]) Add(index int, data *T) *T {
 	if index == 0 {
-		return ll.AddFirst(data)
-	} else if index == ll.Size {
-		return ll.AddLast(data)
-	} else if index < 0 || index > ll.Size {
+		return l.AddFirst(data)
+	} else if index == l.Size {
+		return l.AddLast(data)
+	} else if index < 0 || index > l.Size {
 		return nil
 	}
 
-	for trav, i := ll.Head, 0; trav != nil; trav, i = trav.Next, i+1 {
+	for trav, i := l.Head, 0; trav != nil; trav, i = trav.Next, i+1 {
 		if i == index {
-			return ll.addBeforeNode(trav, data)
+			return l.addBeforeNode(trav, data)
 		}
 	}
 
@@ -171,10 +175,10 @@ func (ll *LinkList[T]) Add(index int, data *T) *T {
 }
 
 // O(n)
-func (ll *LinkList[T]) RemoveData(data *T) *T {
-	for trav := ll.Head; trav != nil; trav = trav.Next {
+func (l *LinkList[T]) RemoveData(data *T) *T {
+	for trav := l.Head; trav != nil; trav = trav.Next {
 		if trav.data == data {
-			return ll.RemoveNode(trav)
+			return l.RemoveNode(trav)
 		}
 	}
 
@@ -182,18 +186,18 @@ func (ll *LinkList[T]) RemoveData(data *T) *T {
 }
 
 // O(n)
-func (ll *LinkList[T]) Remove(index int) *T {
+func (l *LinkList[T]) Remove(index int) *T {
 	if index == 0 {
-		return ll.RemoveFirst()
-	} else if index == ll.Size {
-		return ll.RemoveLast()
-	} else if index < 0 || index > ll.Size {
+		return l.RemoveFirst()
+	} else if index == l.Size {
+		return l.RemoveLast()
+	} else if index < 0 || index > l.Size {
 		return nil
 	}
 
-	for trav, i := ll.Head, 0; trav != nil; trav, i = trav.Next, i+1 {
+	for trav, i := l.Head, 0; trav != nil; trav, i = trav.Next, i+1 {
 		if i == index {
-			return ll.RemoveNode(trav)
+			return l.RemoveNode(trav)
 		}
 	}
 
@@ -201,17 +205,17 @@ func (ll *LinkList[T]) Remove(index int) *T {
 }
 
 // O(1)
-func (ll *LinkList[T]) RemoveNode(node *Node[T]) *T {
+func (l *LinkList[T]) RemoveNode(node *Node[T]) *T {
 	if node == nil {
 		return nil
 	}
 	
 	var data *T = nil
 
-	if ll.Head == node {
-		return ll.RemoveFirst()
-	} else if ll.Tail == node {
-		return ll.RemoveLast()
+	if l.Head == node {
+		return l.RemoveFirst()
+	} else if l.Tail == node {
+		return l.RemoveLast()
 	} else {
 		if node.Prev != nil {
 			node.Prev.Next = node.Next
@@ -226,23 +230,23 @@ func (ll *LinkList[T]) RemoveNode(node *Node[T]) *T {
 		node.data = nil
 	}
 
-	ll.oneSizeMinus()
+	l.oneSizeMinus()
 
 	return data
 }
 
 // O(1)
-func (ll *LinkList[T]) RemoveLast() *T {
+func (l *LinkList[T]) RemoveLast() *T {
 	var data *T = nil
 
-	if ll.Size != 0 {
-		if ll.Head == ll.Tail {
-			ll.Head = nil
+	if l.Size != 0 {
+		if l.Head == l.Tail {
+			l.Head = nil
 		}
-		node := ll.Tail
-		ll.Tail = node.Prev
-		if ll.Tail != nil {
-			ll.Tail.Next = nil
+		node := l.Tail
+		l.Tail = node.Prev
+		if l.Tail != nil {
+			l.Tail.Next = nil
 		}
 
 		data = node.data
@@ -251,23 +255,23 @@ func (ll *LinkList[T]) RemoveLast() *T {
 		node.data = nil
 	}
 
-	ll.oneSizeMinus()
+	l.oneSizeMinus()
 
 	return data
 }
 
 // O(1)
-func (ll *LinkList[T]) RemoveFirst() *T {
+func (l *LinkList[T]) RemoveFirst() *T {
 	var data *T = nil
 
-	if ll.Size != 0 {
-		if ll.Head == ll.Tail {
-			ll.Tail = nil
+	if l.Size != 0 {
+		if l.Head == l.Tail {
+			l.Tail = nil
 		}
-		node := ll.Head
-		ll.Head = node.Next
-		if ll.Head != nil {
-			ll.Head.Prev = nil
+		node := l.Head
+		l.Head = node.Next
+		if l.Head != nil {
+			l.Head.Prev = nil
 		}
 
 		data = node.data
@@ -276,14 +280,14 @@ func (ll *LinkList[T]) RemoveFirst() *T {
 		node.data = nil
 	}
 
-	ll.oneSizeMinus()
+	l.oneSizeMinus()
 
 	return data
 }
 
 // O(n)
-func (ll *LinkList[T]) GetIndex(data *T) int {
-	for i, trav := 0, ll.Head; i < ll.Size; i, trav = i+1, trav.Next {
+func (l *LinkList[T]) GetIndex(data *T) int {
+	for i, trav := 0, l.Head; i < l.Size; i, trav = i+1, trav.Next {
 		if trav.data == data {
 			return i
 		}
@@ -293,17 +297,17 @@ func (ll *LinkList[T]) GetIndex(data *T) int {
 }
 
 // O(n)
-func (ll *LinkList[T]) Contains(data *T) bool {
-	return ll.GetIndex(data) != -1
+func (l *LinkList[T]) Contains(data *T) bool {
+	return l.GetIndex(data) != -1
 }
 
 // O(n)
-func (ll *LinkList[T]) GetNode(index int) *Node[T] {
-	if index > ll.Size || index < 0 {
+func (l *LinkList[T]) GetNode(index int) *Node[T] {
+	if index > l.Size || index < 0 {
 		return nil
 	}
 
-	for i, trav := 0, ll.Head; i < ll.Size; i, trav = i+1, trav.Next {
+	for i, trav := 0, l.Head; i < l.Size; i, trav = i+1, trav.Next {
 		if i == index {
 			return trav
 		}
@@ -313,8 +317,8 @@ func (ll *LinkList[T]) GetNode(index int) *Node[T] {
 }
 
 // O(n)
-func (ll *LinkList[T]) FindNode(data *T) *Node[T] {
-	for trav := ll.Head; trav != nil; trav = trav.Next {
+func (l *LinkList[T]) FindNode(data *T) *Node[T] {
+	for trav := l.Head; trav != nil; trav = trav.Next {
 		if trav.data == data {
 			return trav
 		}
@@ -323,25 +327,25 @@ func (ll *LinkList[T]) FindNode(data *T) *Node[T] {
 	return nil
 }
 
-func (ll *LinkList[T]) DisplaceTo(node *Node[T], index int) bool {
-	if index >= ll.Size || index < 0 {
+func (l *LinkList[T]) DisplaceTo(node *Node[T], index int) bool {
+	if index >= l.Size || index < 0 {
 		return false
 	}
 
 	data := node.data
 
-	ll.RemoveNode(node)
-	ll.Add(index, data)
+	l.RemoveNode(node)
+	l.Add(index, data)
 
 	return true
 }
 
-func (ll *LinkList[T]) DisplaceIndex(index1 int, index2 int) bool {
-	return ll.Displace(ll.GetNode(index1), ll.GetNode(index2))
+func (l *LinkList[T]) DisplaceIndex(index1 int, index2 int) bool {
+	return l.Displace(l.GetNode(index1), l.GetNode(index2))
 }
 
 // O(1)
-func (ll *LinkList[T]) Displace(node1 *Node[T], node2 *Node[T]) bool {
+func (l *LinkList[T]) Displace(node1 *Node[T], node2 *Node[T]) bool {
 	if node1 == node2 {
 		return true
 	}
@@ -349,15 +353,15 @@ func (ll *LinkList[T]) Displace(node1 *Node[T], node2 *Node[T]) bool {
 		return false
 	}
 
-	if node1 == ll.Head {
-		ll.Head = node2
-	} else if node2 == ll.Head {
-		ll.Head = node1
+	if node1 == l.Head {
+		l.Head = node2
+	} else if node2 == l.Head {
+		l.Head = node1
 	}
-	if node2 == ll.Tail {
-		ll.Tail = node1
-	} else if node1 == ll.Tail {
-		ll.Tail = node2
+	if node2 == l.Tail {
+		l.Tail = node1
+	} else if node1 == l.Tail {
+		l.Tail = node2
 	}
 
 	if node1.Next == node2 {
@@ -420,33 +424,33 @@ func (ll *LinkList[T]) Displace(node1 *Node[T], node2 *Node[T]) bool {
 }
 
 // O(n)
-func (ll *LinkList[T]) ReturnAsSlice() []T {
+func (l *LinkList[T]) ReturnAsSlice() []T {
 	slice := []T{}
-	for trav := ll.Head; trav != nil; trav = trav.Next {
+	for trav := l.Head; trav != nil; trav = trav.Next {
 		slice = append(slice, *trav.data)
 	}
 
 	return slice
 }
 
-func (ll *LinkList[T]) FirstNode() *Node[T] {
-	return ll.Head
+func (l *LinkList[T]) FirstNode() *Node[T] {
+	return l.Head
 }
 
-func (ll *LinkList[T]) LastNode() *Node[T] {
-	return ll.Tail
+func (l *LinkList[T]) LastNode() *Node[T] {
+	return l.Tail
 }
 
-func (ll *LinkList[T]) First() *T {
-	if ll.Head != nil {
-		return ll.Head.data
+func (l *LinkList[T]) First() *T {
+	if l.Head != nil {
+		return l.Head.data
 	}
 	return nil
 }
 
-func (ll *LinkList[T]) Last() *T {
-	if ll.Head != nil {
-		return ll.Tail.data
+func (l *LinkList[T]) Last() *T {
+	if l.Head != nil {
+		return l.Tail.data
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-package internal
+package ll
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 )
 
 // CallJobFuncWithParams call a function with parameters
-func CallJobFuncWithParams(jobFunc interface{}, params []interface{}) ([]reflect.Value, error) {
+func CallJobFuncWithParams(jobFunc any, params []any) ([]reflect.Value, error) {
 	f := reflect.ValueOf(jobFunc)
 	if len(params) != f.Type().NumIn() {
 		return nil, errors.New("length of inputs don't match with length of function input")
