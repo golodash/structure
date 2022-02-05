@@ -25,7 +25,8 @@ In LinkList implementation there are two major structure:
 
 1. **New**[T any](functions map[string]any) -> LinkList[T]:
    - Creates and returns a LinkList object.
-   - Adds functions inside the LinkList object that can be run from Run function.
+   - Adds functions inside the LinkList object that can be run from `Run` function.
+   - **Important Note**: Functions that you send inside `New` function, have to have their first input as type of `*LinkList[T]`.
 2. **LinkList**[T any] struct:
    1. **Run**(function string, params... any) -> ([]reflect.Value, error):
       - Receives function key as string and some parameters and runs the function with given parameters.
@@ -91,6 +92,7 @@ package main
 
 import (
 	"fmt"
+	// "reflect"
 
 	"github.com/golodash/structure/ll"
 )
@@ -101,14 +103,18 @@ type Human struct {
 	IDNum     string
 }
 
-func fun() bool {
-	return true
+func fun(l *ll.LinkList[Human], i int) []Human {
+	fmt.Println("We are inside `fun` function and i value equals to: ", i, "\n")
+	return l.ReturnAsSlice()
 }
 
 func main() {
-	l := ll.New[Human](map[string]interface{}{
-        "fun": fun,
-    })
+	l, err := ll.New[Human](map[string]any{
+		"fun": fun,
+	})
+	if err != nil {
+		panic(err)
+	}
 	l.AddLast(&Human{
 		FirstName: "Ali",
 		LastName:  "Hamidi",
@@ -135,31 +141,34 @@ func main() {
 		IDNum:     "0320254644",
 	})
 
-	values, err := l.Run("fun")
-
+	values, err := l.Run("fun", 2)
 	if err == nil {
-		fmt.Println(values[0])
+		fmt.Println("Returned Value:", values[0])
 	} else {
 		fmt.Println(err)
 	}
-
-   fmt.Println(l.ReturnAsSlice())
-	fmt.Println(l.Remove(1))
-	fmt.Println(l.ReturnAsSlice())
-	fmt.Println(l.GetSize())
-   l.Clear()
-	fmt.Println(l.ReturnAsSlice())
-	fmt.Println(l.GetSize())
+	fmt.Println("Removed Item: ", l.Remove(1))
+	fmt.Println("After Remove: ", l.ReturnAsSlice())
+	fmt.Println("Size: ", l.GetSize())
+	l.DisplaceIndex(1, 1)
+	l.DisplaceIndex(2, 3)
+	l.DisplaceIndex(1, 500)
+	fmt.Println("After Displaces: ", l.ReturnAsSlice())
+	l.Clear()
+	fmt.Println("After Clear: ", l.ReturnAsSlice())
+	fmt.Println("Size After Clear: ", l.GetSize())
 }
 ```
 
 Output:
 ```bash
-true
-[{Ahmad Abbasi 0750254694} {Gholi Ghasemi 0890254698} {Bob Ross 0320254644} {Ali Hamidi 0891265769} {Jafar Ahmadi 0090565755}]
-&{Gholi Ghasemi 0890254698}
-[{Ahmad Abbasi 0750254694} {Bob Ross 0320254644} {Ali Hamidi 0891265769} {Jafar Ahmadi 0090565755}]
-4
-[]
-0
+We are inside `fun` function and i value equals to:  2 
+
+Returned Value: [{Ahmad Abbasi 0750254694} {Gholi Ghasemi 0890254698} {Bob Ross 0320254644} {Ali Hamidi 0891265769} {Jafar Ahmadi 0090565755}]
+Removed Item:  &{Gholi Ghasemi 0890254698}
+After Remove:  [{Ahmad Abbasi 0750254694} {Bob Ross 0320254644} {Ali Hamidi 0891265769} {Jafar Ahmadi 0090565755}]
+Size:  4
+After Displaces:  [{Ahmad Abbasi 0750254694} {Bob Ross 0320254644} {Jafar Ahmadi 0090565755} {Ali Hamidi 0891265769}]
+After Clear:  []
+Size After Clear:  0
 ```
