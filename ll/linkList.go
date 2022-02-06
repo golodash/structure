@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"errors"
 	"fmt"
+
+	"github.com/golodash/structure/internal"
 )
 
 type (
@@ -63,7 +65,7 @@ func (l *LinkList[T]) Clear() {
 func (l *LinkList[T]) Run(function string, params... any) ([]reflect.Value, error) {
 	params = append([]any{l}, params...)
 	if _, ok := l.functions[function]; ok {
-		return CallJobFuncWithParams(l.functions[function], params)
+		return internal.CallJobFuncWithParams(l.functions[function], params)
 	}
 
 	return nil, errors.New(fmt.Sprintf("%s not found", function))

@@ -1,4 +1,4 @@
-package ll
+package internal
 
 import (
 	"errors"
