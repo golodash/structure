@@ -9,5 +9,6 @@ In this repository there are some flexible implementations of different data str
 ## Implemented Structures
 
 1. [LinkList](./docs/linkList.md)
-2. ...
+2. [Array](./docs/array.md) (Stack, Queue or Array)
+3. ...
 
