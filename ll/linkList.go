@@ -18,7 +18,7 @@ type (
 	LinkList[T any] struct {
 		Head *Node[T]
 		Tail *Node[T]
-		Size int
+		size int
 		functions map[string]any
 	}
 )
@@ -59,35 +59,35 @@ func (l *LinkList[T]) Clear() {
 
 	l.Head = nil
 	l.Tail = nil
-	l.Size = 0
+	l.size = 0
 }
 
 func (l *LinkList[T]) Run(function string, params... any) ([]reflect.Value, error) {
 	params = append([]any{l}, params...)
-	if _, ok := l.functions[function]; ok {
-		return internal.CallJobFuncWithParams(l.functions[function], params)
+	if v, ok := l.functions[function]; ok {
+		return internal.CallJobFuncWithParams(v, params)
 	}
 
 	return nil, errors.New(fmt.Sprintf("%s not found", function))
 }
 
 func (l *LinkList[T]) oneSizePlus() {
-	l.Size++
+	l.size++
 }
 
 func (l *LinkList[T]) oneSizeMinus() {
-	l.Size--
-	if l.Size < 0 {
-		l.Size = 0
+	l.size--
+	if l.size < 0 {
+		l.size = 0
 	}
 }
 
 func (l *LinkList[T]) GetSize() int {
-	return l.Size
+	return l.size
 }
 
 func (l *LinkList[T]) IsEmpty() bool {
-	return l.Size == 0
+	return l.size == 0
 }
 
 // O(1)
@@ -100,7 +100,7 @@ func (l *LinkList[T]) AddLast(data *T) *T {
 		Next: nil,
 	}
 
-	if l.Size == 0 {
+	if l.size == 0 {
 		l.Head = node
 		l.Tail = node
 	} else {
@@ -124,7 +124,7 @@ func (l *LinkList[T]) AddFirst(data *T) *T {
 		Next: nil,
 	}
 
-	if l.Size == 0 {
+	if l.size == 0 {
 		l.Head = node
 		l.Tail = node
 	} else {
@@ -161,9 +161,9 @@ func (l *LinkList[T]) addBeforeNode(node *Node[T], data *T) *T {
 func (l *LinkList[T]) Add(index int, data *T) *T {
 	if index == 0 {
 		return l.AddFirst(data)
-	} else if index == l.Size {
+	} else if index == l.size {
 		return l.AddLast(data)
-	} else if index < 0 || index > l.Size {
+	} else if index < 0 || index > l.size {
 		return nil
 	}
 
@@ -191,9 +191,9 @@ func (l *LinkList[T]) RemoveData(data *T) *T {
 func (l *LinkList[T]) Remove(index int) *T {
 	if index == 0 {
 		return l.RemoveFirst()
-	} else if index == l.Size {
+	} else if index == l.size {
 		return l.RemoveLast()
-	} else if index < 0 || index > l.Size {
+	} else if index < 0 || index > l.size {
 		return nil
 	}
 
@@ -241,7 +241,7 @@ func (l *LinkList[T]) RemoveNode(node *Node[T]) *T {
 func (l *LinkList[T]) RemoveLast() *T {
 	var data *T = nil
 
-	if l.Size != 0 {
+	if l.size != 0 {
 		if l.Head == l.Tail {
 			l.Head = nil
 		}
@@ -266,7 +266,7 @@ func (l *LinkList[T]) RemoveLast() *T {
 func (l *LinkList[T]) RemoveFirst() *T {
 	var data *T = nil
 
-	if l.Size != 0 {
+	if l.size != 0 {
 		if l.Head == l.Tail {
 			l.Tail = nil
 		}
@@ -289,7 +289,7 @@ func (l *LinkList[T]) RemoveFirst() *T {
 
 // O(n)
 func (l *LinkList[T]) GetIndex(data *T) int {
-	for i, trav := 0, l.Head; i < l.Size; i, trav = i+1, trav.Next {
+	for i, trav := 0, l.Head; i < l.size; i, trav = i+1, trav.Next {
 		if trav.data == data {
 			return i
 		}
@@ -305,11 +305,11 @@ func (l *LinkList[T]) Contains(data *T) bool {
 
 // O(n)
 func (l *LinkList[T]) GetNode(index int) *Node[T] {
-	if index > l.Size || index < 0 {
+	if index > l.size || index < 0 {
 		return nil
 	}
 
-	for i, trav := 0, l.Head; i < l.Size; i, trav = i+1, trav.Next {
+	for i, trav := 0, l.Head; i < l.size; i, trav = i+1, trav.Next {
 		if i == index {
 			return trav
 		}
@@ -330,7 +330,7 @@ func (l *LinkList[T]) FindNode(data *T) *Node[T] {
 }
 
 func (l *LinkList[T]) DisplaceTo(node *Node[T], index int) bool {
-	if index >= l.Size || index < 0 {
+	if index >= l.size || index < 0 {
 		return false
 	}
 
