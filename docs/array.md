@@ -5,11 +5,11 @@
 In Array implementation there is one major structure:
 
 1. **Array**[T any] struct:
-   1. **Values** []*T
+   1. **Values** []*T:
       - Represents the actual values inside array struct.
-   2. **size** int (inaccessible)
+   2. **size** int (inaccessible):
       - Represents size of the `Values` array.
-   3. **functions** map[string]any (inaccessible)
+   3. **functions** map[string]any (inaccessible):
       - Represents custom functions that you want to run on `Array` object by `Run` function.
 
 ## Functions
