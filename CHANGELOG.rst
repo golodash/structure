@@ -4,6 +4,7 @@ CHANGELOG
 UNRELEASED
 ----------
 
+* ✅ test(array): array test cases added
 * 🎉 feat(array): stack, queue and array implementation added
 * 🐛 fix(ll): test cases break when something goes wrong
 * 🐛 fix: pre-push script didn't function right
