@@ -92,6 +92,7 @@ func TestLinkList(t *testing.T) {
 	l, err := New[int](map[string]any{"test": testFun[int]})
 	if err != nil {
 		t.Errorf("on calling `New` function error happened:\nerr => %s", err.Error())
+		return
 	}
 
 	for k, c := range cases {
@@ -150,5 +151,6 @@ func TestLinkList(t *testing.T) {
 
 	if res, err := l.Run("test"); res == nil || err != nil {
 		t.Errorf("on calling `Run` for `test` function error happened:\nerr => %s", err.Error())
+		return
 	}
 }
